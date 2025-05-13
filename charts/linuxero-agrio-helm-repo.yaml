@@ -1,0 +1,8 @@
+apiVersion: helm.openshift.io/v1beta1
+kind: HelmChartRepository
+metadata:
+  name: linuxero-agrio-helm-repo
+spec:
+ name: Linuxero Agrio's Personal Helm Repo
+ connectionConfig:
+   url: https://linuxeroagrio.github.io/helm-charts
