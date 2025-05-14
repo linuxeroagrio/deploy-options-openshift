@@ -1,0 +1,15 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: linuxero-agrio-operator-catalog
+  namespace: openshift-marketplace
+spec:
+  displayName: Linuxero Agrio's Operator Catalog
+  publisher: Linuxero Agrio
+  sourceType: grpc
+  grpcPodConfig:
+    securityContextConfig: legacy
+  image: quay.linuxero-agrio.com.mx/linuxeroagrio/hello-operator-catalog:v0.0.1
+  updateStrategy:
+    registryPoll:
+      interval: 10m
