@@ -1,0 +1,10 @@
+resources:
+- ../../base
+nameSuffix: -prod
+labels:
+- includeSelectors: true
+  pairs:
+    app: hello-prod
+patches:
+- path: patch-deployment.yaml
+- path: patch-route.yaml

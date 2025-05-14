@@ -1,0 +1,9 @@
+resources:
+- ../../base
+nameSuffix: -dev
+labels:
+- includeSelectors: true
+  pairs:
+    app: hello-dev
+patches:
+- path: patch-route.yaml

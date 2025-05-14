@@ -1,0 +1,9 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: hello
+spec:
+  to:
+    kind: Service
+    name: hello-dev
+    weight: 100
