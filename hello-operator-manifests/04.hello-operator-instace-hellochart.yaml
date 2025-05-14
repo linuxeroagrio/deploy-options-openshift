@@ -1,0 +1,9 @@
+apiVersion: charts.linuxero-agrio.com.mx/v1alpha1
+kind: HelloChart
+metadata:
+  name: hellochart-operator-instance-1
+  namespace: deploy-operator
+spec:
+  image:
+    tag: v1
+  replicaCount: 1
