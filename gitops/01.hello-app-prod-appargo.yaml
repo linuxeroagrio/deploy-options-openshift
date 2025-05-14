@@ -1,0 +1,14 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hello-app-prod
+  namespace: openshift-gitops
+spec:
+  destination:
+    namespace: deploy-hello-prod
+    server: https://kubernetes.default.svc
+  project: hello-argo-proj
+  source:
+    path: kustomize/overlays/prod
+    repoURL: https://github.com/linuxeroagrio/deploy-options-openshift.git
+    targetRevision: HEAD
