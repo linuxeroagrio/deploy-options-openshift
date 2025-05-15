@@ -1,0 +1,32 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: argocd-app-set-values
+  namespace: openshift-pipelines
+spec:
+  params:
+  - description: name of the application to set values
+    name: application-name
+    type: string
+  - default: --
+    name: flags
+    type: string
+  - default: v2.2.2
+    name: argocd-version
+    type: string
+  stepTemplate:
+    computeResources: {}
+    envFrom:
+    - configMapRef:
+        name: argocd-env-configmap
+    - secretRef:
+        name: argocd-env-secret
+  steps:
+  - computeResources: {}
+    image: quay.io/argoproj/argocd:$(params.argocd-version)
+    name: set-values
+    script: |
+      if [ -z "$ARGOCD_AUTH_TOKEN" ]; then
+        yes | argocd login "$ARGOCD_SERVER" --username="$ARGOCD_USERNAME" --password="$ARGOCD_PASSWORD";
+      fi
+      argocd app set $(params.application-name) $(params.flags)

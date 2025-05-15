@@ -1,0 +1,7 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: argocd-env-configmap
+  namespace: hello-cicd
+data:
+  ARGOCD_SERVER: PUT_YOUR_ARGOCD_SERVER_NAME_HERE

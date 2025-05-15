@@ -1,0 +1,24 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+    name: kics-scan
+    namespace: openshift-pipelines
+spec:
+  workspaces:
+    - name: source
+  params:
+    - name: PATH_TO_SCAN
+      description: Path to scan
+      default: ""
+      type: string
+  steps:
+    - name: scan
+      image: docker.io/checkmarx/kics:ubi8
+      workingDir: $(workspaces.source.path)
+      script: |
+        if [[ -f $(workspaces.source.path)/$(params.PATH_TO_SCAN) || -d $(workspaces.source.path)/$(params.PATH_TO_SCAN) ]]; then
+          /app/bin/kics scan -p $(workspaces.source.path)/$(params.PATH_TO_SCAN) -o $(workspaces.source.path)/iac-scan-result -v --report-formats "html" --ignore-on-exit "results"
+        else
+          echo "Unable to find $(workspaces.source.path)/$(params.PATH_TO_SCAN) file or directory"
+          exit 1
+        fi

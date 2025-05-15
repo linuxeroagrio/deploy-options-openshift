@@ -1,0 +1,10 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: hello-ci-cd-source-workspace
+  namespace: hello-cicd
+spec:
+  resources:
+    requests:
+      storage: 5Gi
+  volumeMode: Filesystem

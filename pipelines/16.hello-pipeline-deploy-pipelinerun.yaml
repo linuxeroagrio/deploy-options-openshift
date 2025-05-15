@@ -1,0 +1,40 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  labels:
+    tekton.dev/pipeline: hello-pipeline
+  name: hello-pipeline-deploy
+  namespace: hello-cicd
+spec:
+  params:
+  - name: GIT_REPO_URL
+    value: https://github.com/linuxeroagrio/deploy-options-openshift.git
+  - name: DOCKERFILE_PATH
+    value: ./Dockerfile
+  - name: IMAGE_NAME
+    value: quay.linuxero-agrio.com.mx/linuxeroagrio/hello
+  - name: IMAGE_TAG
+    value: v1
+  - name: HELM_REPO_URL
+    value: https://linuxeroagrio.github.io/helm-charts
+  - name: HELM_CHART_NAME
+    value: hello-chart
+  - name: HELM_CHART_VERSION
+    value: 0.1.0
+  - name: APP_NAME
+    value: hello
+  - name: DEV_URL
+    value: hello-hello-dev.apps.sno.linuxero-agrio.com.mx
+  pipelineRef:
+    name: hello-pipeline
+  taskRunTemplate:
+    serviceAccountName: pipeline
+  timeouts:
+    pipeline: 1h0m0s
+  workspaces:
+  - name: hello-source-workspace
+    persistentVolumeClaim:
+      claimName: hello-ci-cd-source-workspace
+  - name: image-registry-creds
+    secret:
+      secretName: image-registry-creds

@@ -1,0 +1,250 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: hello-pipeline
+  namespace: hello-cicd
+spec:
+  params:
+  - default: https://github.com/linuxeroagrio/deploy-options-openshift.git
+    description: Repository with source code
+    name: GIT_REPO_URL
+    type: string
+  - default: ./Dockerfile
+    description: Containerfile or Dockerfile path
+    name: DOCKERFILE_PATH
+    type: string
+  - default: quay.linuxero-agrio.com.mx/linuxeroagrio/hello
+    description: Image name
+    name: IMAGE_NAME
+    type: string
+  - default: v1
+    description: Image Tag
+    name: IMAGE_TAG
+    type: string
+  - default: https://linuxeroagrio.github.io/helm-charts
+    description: 'Helm Repo '
+    name: HELM_REPO_URL
+    type: string
+  - default: hello-chart
+    description: Helm Chart Name
+    name: HELM_CHART_NAME
+    type: string
+  - default: 0.1.0
+    description: Helm Chart Version
+    name: HELM_CHART_VERSION
+    type: string
+  - default: hello
+    description: Application Name
+    name: APP_NAME
+    type: string
+  - default: hello-hello-dev.apps.sno.linuxero-agrio.com.mx
+    description: Dev URL for testing
+    name: DEV_URL
+    type: string
+  tasks:
+  - name: get-source
+    params:
+    - name: CRT_FILENAME
+      value: ca-bundle.crt
+    - name: HTTP_PROXY
+      value: ""
+    - name: HTTPS_PROXY
+      value: ""
+    - name: NO_PROXY
+      value: ""
+    - name: SUBDIRECTORY
+      value: ""
+    - name: USER_HOME
+      value: /home/git
+    - name: DELETE_EXISTING
+      value: "true"
+    - name: VERBOSE
+      value: "false"
+    - name: SSL_VERIFY
+      value: "true"
+    - name: URL
+      value: $(params.GIT_REPO_URL)
+    - name: REVISION
+      value: main
+    - name: REFSPEC
+      value: ""
+    - name: SUBMODULES
+      value: "true"
+    - name: DEPTH
+      value: "1"
+    - name: SPARSE_CHECKOUT_DIRECTORIES
+      value: ""
+    taskRef:
+      params:
+      - name: kind
+        value: task
+      - name: name
+        value: git-clone
+      - name: namespace
+        value: openshift-pipelines
+      resolver: cluster
+    workspaces:
+    - name: output
+      workspace: hello-source-workspace
+  - name: dockerfile-scan
+    params:
+    - name: PATH_TO_SCAN
+      value: $(params.DOCKERFILE_PATH)
+    runAfter:
+    - get-source
+    taskRef:
+      params:
+      - name: kind
+        value: task
+      - name: name
+        value: kics-scan
+      - name: namespace
+        value: openshift-pipelines
+      resolver: cluster
+    workspaces:
+    - name: source
+      workspace: hello-source-workspace
+  - name: build-container-image
+    params:
+    - name: IMAGE
+      value: $(params.IMAGE_NAME):$(params.IMAGE_TAG)
+    - name: DOCKERFILE
+      value: $(params.DOCKERFILE_PATH)
+    - name: BUILD_ARGS
+      value: []
+    - name: CONTEXT
+      value: .
+    - name: STORAGE_DRIVER
+      value: vfs
+    - name: FORMAT
+      value: oci
+    - name: BUILD_EXTRA_ARGS
+      value: ""
+    - name: PUSH_EXTRA_ARGS
+      value: ""
+    - name: SKIP_PUSH
+      value: "false"
+    - name: TLS_VERIFY
+      value: "false"
+    - name: VERBOSE
+      value: "false"
+    runAfter:
+    - dockerfile-scan
+    taskRef:
+      params:
+      - name: kind
+        value: task
+      - name: name
+        value: buildah
+      - name: namespace
+        value: openshift-pipelines
+      resolver: cluster
+    workspaces:
+    - name: source
+      workspace: hello-source-workspace
+    - name: dockerconfig
+      workspace: image-registry-creds
+  - name: image-scan
+    params:
+    - name: ARGS
+      value:
+      - image
+      - --exit-code
+      - "0"
+    - name: TRIVY_IMAGE
+      value: docker.io/aquasec/trivy:canary
+    - name: IMAGE_PATH
+      value: $(params.IMAGE_NAME):$(params.IMAGE_TAG)
+    - name: AIR_GAPPED_ENABLED
+      value: "false"
+    runAfter:
+    - build-container-image
+    taskRef:
+      kind: Task
+      name: trivy-scanner
+    workspaces:
+    - name: manifest-dir
+      workspace: hello-source-workspace
+  - name: deploy-to-dev
+    params:
+    - name: helm_repo
+      value: $(params.HELM_REPO_URL)
+    - name: chart_name
+      value: stable/$(params.HELM_CHART_NAME)
+    - name: release_version
+      value: $(params.HELM_CHART_VERSION)
+    - name: release_name
+      value: $(params.APP_NAME)
+    - name: release_namespace
+      value: $(params.APP_NAME)-dev
+    - name: overwrite_values
+      value: image.tag=$(params.IMAGE_TAG)
+    - name: helm_image
+      value: docker.io/lachlanevenson/k8s-helm@sha256:5c792f29950b388de24e7448d378881f68b3df73a7b30769a6aa861061fd08ae
+    runAfter:
+    - image-scan
+    taskRef:
+      params:
+      - name: kind
+        value: task
+      - name: name
+        value: helm-upgrade-from-repo
+      - name: namespace
+        value: openshift-pipelines
+      resolver: cluster
+  - name: test-app
+    params:
+    - name: url
+      value: $(params.DEV_URL)
+    - name: options
+      value: []
+    - name: curl-image
+      value: docker.io/curlimages/curl:7.72.0@sha256:bd5bbd35f89b867c1dccbc84b8be52f3f74dea20b46c5fe0db3780e040afcb6f
+    runAfter:
+    - deploy-to-dev
+    taskRef:
+      kind: Task
+      name: curl
+  - name: update-prod-tag
+    params:
+    - name: application-name
+      value: $(params.APP_NAME)-prod
+    - name: flags
+      value: --kustomize-image $(params.IMAGE_NAME):$(params.IMAGE_TAG)
+    - name: argocd-version
+      value: v2.2.2
+    runAfter:
+    - test-app
+    taskRef:
+      params:
+      - name: kind
+        value: task
+      - name: name
+        value: argocd-app-set-values
+      - name: namespace
+        value: openshift-pipelines
+      resolver: cluster
+  - name: deploy-prod
+    params:
+    - name: application-name
+      value: $(params.APP_NAME)-prod
+    - name: revision
+      value: HEAD
+    - name: flags
+      value: --
+    - name: argocd-version
+      value: v2.2.2
+    runAfter:
+    - update-prod-tag
+    taskRef:
+      params:
+      - name: kind
+        value: task
+      - name: name
+        value: argocd-task-sync-and-wait
+      - name: namespace
+        value: openshift-pipelines
+      resolver: cluster
+  workspaces:
+  - name: hello-source-workspace
+  - name: image-registry-creds

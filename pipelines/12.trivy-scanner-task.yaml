@@ -1,0 +1,60 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  annotations:
+    openshift.io/installed-from: ArtifactHub
+    openshift.io/sem-version: 0.2.0
+    tekton.dev/categories: Security
+    tekton.dev/displayName: trivy scanner
+    tekton.dev/pipelines.minVersion: 0.12.1
+    tekton.dev/platforms: linux/amd64,linux/arm64,linux/ppc64le,linux/390x
+    tekton.dev/tags: CLI, trivy
+  labels:
+    app.kubernetes.io/version: "0.2"
+  name: trivy-scanner
+  namespace: openshift-pipelines
+spec:
+  description: |-
+    Trivy is a simple and comprehensive scanner for vulnerabilities in container images,file systems ,and Git repositories, as well as for configuration issues.
+    This task can be used to scan for vulnenrabilities on the source code in stand alone mode.
+  params:
+  - description: The Arguments to be passed to Trivy command.
+    name: ARGS
+    type: array
+  - default: docker.io/aquasec/trivy@sha256:944a044451791617cc0ed2ee4d1942a4f66b790d527fcd0575a6b399ccbc05a1
+    description: Trivy scanner image to be used
+    name: TRIVY_IMAGE
+    type: string
+  - description: Image or Path to be scanned by trivy.
+    name: IMAGE_PATH
+    type: string
+  - default: "false"
+    description: a flag enabling Air-Gapped mode
+    name: AIR_GAPPED_ENABLED
+    type: string
+  steps:
+  - args:
+    - $(params.ARGS)
+    computeResources: {}
+    image: $(params.TRIVY_IMAGE)
+    name: trivy-scan
+    script: |
+      #!/usr/bin/env sh
+        cmd="trivy $* "
+        if [ "$(params.AIR_GAPPED_ENABLED)" = "true" ]; then
+          echo "Air-Gapped mode enabled"
+          TRIVY_TEMP_DIR=$(mktemp -d)
+          trivy --cache-dir "$TRIVY_TEMP_DIR" image --download-db-only
+          tar -cf ./db.tar.gz -C "$TRIVY_TEMP_DIR/db" metadata.json trivy.db
+          rm -rf "$TRIVY_TEMP_DIR"
+          mkdir -p "$HOME"/.cache/trivy/db
+          tar xvf ./db.tar.gz -C "$HOME"/.cache/trivy/db
+          cmd="${cmd}--skip-update "
+        fi
+        cmd="${cmd}$(params.IMAGE_PATH)"
+        echo "Running trivy task with command below"
+        echo "$cmd"
+        eval "$cmd"
+    workingDir: $(workspaces.manifest-dir.path)
+  workspaces:
+  - name: manifest-dir
