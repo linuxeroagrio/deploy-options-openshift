@@ -24,7 +24,7 @@ objects:
           app: ${APP_NAME}
       spec:
         containers:
-        - image: quay.linuxero-agrio.com.mx/linuxeroagrio/hello:v1
+        - image: quay.io/linuxeroagrio/hello:v1
           name: ${APP_NAME}
           ports:
           - containerPort: 8080
