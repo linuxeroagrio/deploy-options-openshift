@@ -15,7 +15,7 @@ spec:
         app: hello
     spec:
       containers:
-      - image: quay.linuxero-agrio.com.mx/linuxeroagrio/hello:v1
+      - image: quay.io/linuxeroagrio/hello:v1
         name: hello
         ports:
         - containerPort: 8080
