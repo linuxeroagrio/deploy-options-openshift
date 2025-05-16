@@ -24,7 +24,7 @@ spec:
   - name: APP_NAME
     value: hello
   - name: DEV_URL
-    value: hello-hello-dev.apps.sno.linuxero-agrio.com.mx
+    value: PUT_YOUR_DEV_URL_HERE
   pipelineRef:
     name: hello-pipeline
   taskRunTemplate:
