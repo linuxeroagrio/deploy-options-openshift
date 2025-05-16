@@ -1,3 +1,4 @@
 replicaCount: 1
 image:
+  name: "quay.io/linuxeroagrio/hello"
   tag: "v1"

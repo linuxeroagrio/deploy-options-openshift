@@ -15,7 +15,7 @@ spec:
         app: {{ .Release.Name }}
     spec:
       containers:
-      - image: "quay.linuxero-agrio.com.mx/linuxeroagrio/hello:{{ .Values.image.tag | default .Chart.AppVersion }}"
+      - image: {{ .Values.image.name | default "quay.io/linuxeroagrio/hello" }}:{{ .Values.image.tag | default .Chart.AppVersion }}
         name: {{ .Release.Name }}
         ports:
         - containerPort: 8080
