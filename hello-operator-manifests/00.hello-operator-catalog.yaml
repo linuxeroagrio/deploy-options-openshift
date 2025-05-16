@@ -9,7 +9,7 @@ spec:
   sourceType: grpc
   grpcPodConfig:
     securityContextConfig: legacy
-  image: quay.linuxero-agrio.com.mx/linuxeroagrio/hello-operator-catalog:v0.0.1
+  image: quay.io/linuxeroagrio/hello-operator-catalog:v0.0.1
   updateStrategy:
     registryPoll:
       interval: 10m
